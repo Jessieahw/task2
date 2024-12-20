@@ -671,17 +671,46 @@ def extract_accession_number(raw_text):
         return match.group(1)
     return "Unknown_Accession"
 
+# def save_beautified_text(text, filename="beautified_text.txt"):
+#     """
+#     Saves the provided beautified text to a file.
+#     """
+#     with open(filename, "w") as file:
+#         file.write(normalize_text(text))
+
 def extract_item_content(beautified_text, item_names):
     """
     Extracts the content for each item based on the list of item names.
     Skips extraction for "Financial Statements and Exhibits".
     """
     item_contents = {}
+    date_pattern = re.compile(r"Date:\s\w+\s\d{1,2},\s\d{4}")
+
+    # Search for the date line in the beautified text
+    date_match = date_pattern.search(beautified_text)
+    if date_match:
+        date_position = date_match.start()
+        beautified_text = beautified_text[:date_position]
+
     for i, current_item in enumerate(item_names):
         # Skip extraction for "Financial Statements and Exhibits"
+        # print(normalize_text(current_item))
+        
         if current_item == normalize_text("Financial Statements and Exhibits"):
             continue
 
+        if normalize_text(current_item) == normalize_text("Departure of Directors or Certain Officers Election of Directors Appointment of Certain Officers Compensatory Arrangements of Certain Officers"):
+            hardcoded_content_pattern = re.compile(
+                rf"(Item\s\d+\.\d+\sDeparture\ of\ Directors\ or\ Principal\ Officers\ Election\ of\ Directors\ Appointment\ of\ Principal\ Officers.*?)(?=Item\s\d+\.\d+|$)",
+                re.DOTALL
+            )
+            # print("hey")
+            match = hardcoded_content_pattern.search(normalize_text(beautified_text))
+            # print(match)
+            if match:
+                
+                item_contents[current_item] = match.group(1).strip()
+                continue
         # Determine the stopping point: the name of the next item or end of document
         next_item = item_names[i + 1] if i + 1 < len(item_names) else None
 
@@ -689,20 +718,33 @@ def extract_item_content(beautified_text, item_names):
         current_item_pattern = normalize_text(current_item)
         next_item_pattern = normalize_text(next_item) if next_item else None
 
+        # if next_item_pattern:
+        #     pattern = re.compile(
+        #         rf"(Item\s\d+\.\d+\s{re.escape(current_item_pattern)}.*?)(?=Item\s\d+\.\d+\s{re.escape(next_item_pattern)})",
+        #         re.DOTALL
+        #     )
+        # else:
+        #     # Last item: extract until the end of the document
+        #     pattern = re.compile(
+        #         rf"(Item\s\d+\.\d+\s{re.escape(current_item_pattern)}.*)",
+        #         re.DOTALL
+        #     )
+
         if next_item_pattern:
             pattern = re.compile(
-                rf"(Item\s\d+\.\d+\s{re.escape(current_item_pattern)}.*?)(?=Item\s\d+\.\d+\s{re.escape(next_item_pattern)})",
+                rf"(Item\s\d+\.\d+\s?{re.escape(current_item_pattern)}.*?)(?=Item\s\d+\.\d+\s?{re.escape(next_item_pattern)})",
                 re.DOTALL
             )
         else:
             # Last item: extract until the end of the document
             pattern = re.compile(
-                rf"(Item\s\d+\.\d+\s{re.escape(current_item_pattern)}.*)",
+                rf"(Item\s\d+\.\d+\s?{re.escape(current_item_pattern)}.*)",
                 re.DOTALL
             )
 
         # Extract the content for the current item
         match = pattern.search(normalize_text(beautified_text))
+
         if match:
             item_contents[current_item] = match.group(1).strip()
         else:
@@ -734,7 +776,7 @@ def process_text_file(input_file_path, output_dir):
             file_path = os.path.join(input_file_path, filename)
             if not os.path.isfile(file_path):
                 continue
-            print(file_path)
+            # print(file_path)
             # Read the input file
             raw_text = read_file_with_fallback(file_path)
 
@@ -746,6 +788,7 @@ def process_text_file(input_file_path, output_dir):
 
             # Step 1: Beautify the text
             beautified_text = beautify_text(raw_text)
+            # save_beautified_text(beautified_text)
 
             # Step 2: Extract contents for each item
             extracted_contents = extract_item_content(beautified_text, items)
