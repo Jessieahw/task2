@@ -186,6 +186,7 @@ txt_files = glob.glob(os.path.join(filepath, "*.txt"))
 for Filer in txt_files:
         FileNUM = os.path.basename(Filer).split('.')[0]
         print("processing:",FileNUM )
+
         with open(LOG, 'a') as log:
             log.write(f"Processing: {FileNUM}\n")
         parse(Filer, temp)
@@ -395,7 +396,8 @@ for Filer in txt_files:
         item1[12] = "item 1 . business"
         item1[13] = "item1 . business"
         item1[14] ="items 1 and 2. business and properties"
-        item1[15]="item 1. businessitem 1. businessoverview"
+        item1[15]="item 1. businessoverview"
+        item1[16]="item 1.businessgeneral"
 
         item1a={}
         item1a[1] = "item 1a: risk factors"
@@ -426,42 +428,36 @@ for Filer in txt_files:
                         f.close()
 
 
-        for j in range(1,16):
+        for j in range(1,17):
             a[j]=[]
             for m in re.finditer(item1[j], lstr1):
                 if not m:
                     break 
-# add these 
-                if j == 15:  # Special case for item1[15] (business overview)
-                    b = m.start()
-                    a[j].append(b)
-                    continue
-
-                substr1=lstr1[max(0,m.start()-100):m.start()]
+                substr1=lstr1[max(0,m.start()-50):m.start()]
                 if any(s in substr1 for s in look):   
                     continue
                 b=m.start()
                 a[j].append(b)
-        print(a)
+        # print(a)
         list1=[]
         for value in a.values():
             for thing1 in value:
                 list1.append(thing1)
         list1.sort()
         list1.append(len(lstr1))
-        print("list1",list1)
+        # print(list1)
         for j in range(1,16):
             c[j]=[]
             for m in re.finditer(item1a[j], lstr1):
                 if not m:
                     break
-                substr1=lstr1[max(0,m.start()-100):m.start()]
-                after = lstr1[m.start():m.start() + 150].strip()
+                substr1=lstr1[max(0,m.start()-50):m.start()]
+                after = lstr1[m.start():m.start() + 100].strip()
                 # if any(s in substr1 for s in look) or not re.match(r'\s*item\s+1\b', after, re.IGNORECASE):
                 if any(s in substr1 for s in look):
 
                     continue
-                if re.match(r'\s*item\s+1a[.:]?\s+', after, re.IGNORECASE):
+                if re.match(r'[^\w]*item\s*1a[.:]?', after, re.IGNORECASE):
 
                     b=m.start()
                     c[j].append(b)
@@ -473,10 +469,10 @@ for Filer in txt_files:
         list2.sort()
         locations={}
         if list2==[]:
-            print("NO MD&A")
+            print("NOT FOUND")
         else:
             if list1==[]:
-                print("NO MD&A")
+                print("NOT FOUND")
             else:
                 for k0 in range(len(list1)):
                     locations[k0]=[]
@@ -485,7 +481,7 @@ for Filer in txt_files:
                     for item in range(len(list2)):
                         if locations[k0][0]<=list2[item]:
                             after = lstr1[list2[item]:list2[item] + 100].strip()
-                            if len(locations[k0]) == 1 or re.match(r'\s*item\s+1a[.:]?\s+', after, re.IGNORECASE):
+                            if len(locations[k0]) == 1 or re.match(r'[^\w]*item\s*1a[.:]?', after, re.IGNORECASE):
                                 locations[k0].append(list2[item])
                                 break
                     if len(locations[k0])==1:
@@ -512,5 +508,5 @@ for Filer in txt_files:
             with open(LOG,'a') as f:
                     f.write(str(FileNUM)+"\t"+str(sections)+"\n")
                     f.close()
-        print(FileNUM)
+        # print(FileNUM)
 
